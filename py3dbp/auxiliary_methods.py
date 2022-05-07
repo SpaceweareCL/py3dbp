@@ -16,6 +16,17 @@ def rect_intersect(item1, item2, x, y):
 
     return ix < (d1[x]+d2[x])/2 and iy < (d1[y]+d2[y])/2
 
+def intersection_area(a, b):  # calculate intersection area of 2 rectanglees
+
+    dimension_A = a.get_dimension()
+    dimension_B = b.get_dimension()
+    
+    dx = min(float(a.position[0])+float(dimension_A[0]), float(b.position[0])+float(dimension_B[0])) - max(float(a.position[0]), float(b.position[0]))
+    dy = min(float(a.position[2])+float(dimension_A[2]), float(b.position[2])+float(dimension_A[2])) - max(float(a.position[2]), float(b.position[2]))
+
+    if (dx>=0) and (dy>=0):
+        return dx*dy
+    return 0
 
 def intersect(item1, item2):
     return (

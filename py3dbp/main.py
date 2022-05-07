@@ -1,12 +1,13 @@
+from os import name
 from .constants import RotationType, Axis
-from .auxiliary_methods import intersect, set_to_decimal
+from .auxiliary_methods import intersect, set_to_decimal, intersection_area
 
-DEFAULT_NUMBER_OF_DECIMALS = 3
+DEFAULT_NUMBER_OF_DECIMALS = 5
 START_POSITION = [0, 0, 0]
 
 
 class Item:
-    def __init__(self, name, width, height, depth, weight):
+    def __init__(self, name, width, height, depth, weight, max_weight = 0):
         self.name = name
         self.width = width
         self.height = height
@@ -15,6 +16,8 @@ class Item:
         self.rotation_type = 0
         self.position = START_POSITION
         self.number_of_decimals = DEFAULT_NUMBER_OF_DECIMALS
+        self.max_weight = max_weight
+        self.actual_weight = 0
 
     def format_numbers(self, number_of_decimals):
         self.width = set_to_decimal(self.width, number_of_decimals)
@@ -87,8 +90,11 @@ class Bin:
 
         for item in self.items:
             total_weight += item.weight
-
+        #print("TOTAL WEIGHT FOR BIN {}: {}".format(self.name, total_weight))
         return set_to_decimal(total_weight, self.number_of_decimals)
+    
+    def check_weight_over_item(self, item):
+        pass
 
     def put_item(self, item, pivot):
         fit = False
@@ -111,11 +117,27 @@ class Bin:
                 if intersect(current_item_in_bin, item):
                     fit = False
                     break
+                # ##Esto asume que el peso distribuye uniforme
+                weight_area = intersection_area(current_item_in_bin, item)*float(item.weight)
+                #
+                if (current_item_in_bin.actual_weight+weight_area)>current_item_in_bin.max_weight:
+                    #print("Unfit because of weight exceed over other item")
+                    fit = False
+                    break
+                
+                ##Check how depth x width intersection for al items
+
 
             if fit:
                 if self.get_total_weight() + item.weight > self.max_weight:
                     fit = False
+                    #print("Unfit because of weight exceed in container")
                     return fit
+                #Check how depth x width intersection for all items
+                for current_item_in_bin in self.items:
+                    weight_area = intersection_area(current_item_in_bin, item)*float(item.weight)
+                    current_item_in_bin.actual_weight = current_item_in_bin.actual_weight+weight_area
+
 
                 self.items.append(item)
 
@@ -132,6 +154,7 @@ class Bin:
 
 class Packer:
     def __init__(self):
+        print("Echo test")
         self.bins = []
         self.items = []
         self.unfit_items = []
@@ -139,8 +162,15 @@ class Packer:
 
     def add_bin(self, bin):
         return self.bins.append(bin)
+    
+    def get_bin(self, name):
+        for bin in self.bins:
+            if bin.name == name:
+                return bin
+        return None 
 
     def add_item(self, item):
+        #print("Item added:"+str(item.string()))
         self.total_items = len(self.items) + 1
 
         return self.items.append(item)
@@ -206,11 +236,20 @@ class Packer:
         self.items.sort(
             key=lambda item: item.get_volume(), reverse=bigger_first
         )
+        
+        
+        print("Total items: "+str(self.total_items))
+        #print("Items: "+str(self.items))
+        
 
         for bin in self.bins:
+            
             for item in self.items:
+                #print("Going to pack: "+str(item.string()))
                 self.pack_to_bin(bin, item)
+                
 
             if distribute_items:
                 for item in bin.items:
-                    self.items.remove(item)
+                    if item in self.items:
+                        self.items.remove(item)
